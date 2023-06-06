@@ -31,7 +31,7 @@ def get_r2(vec):
             v.append(round(aa[2],3))
     return res
 
-def different_models(X, y, n_runs = 10, layers = [[10]], beta_vec=[2e-2], alpha = 0.05, threshold = 0.9, variable_names = []):
+def different_models(X, y, X_test, y_test, n_runs = 10, layers = [[10]], beta_vec=[2e-2], alpha = 0.05, threshold = 0.9, variable_names = []):
     # function that runs a linear sm model and as many NN models as we indicate at layers. If layer=[] it will just performs a OLS
     
     if variable_names==[]: # we assign a name by its possition in case names were not provided
@@ -39,9 +39,10 @@ def different_models(X, y, n_runs = 10, layers = [[10]], beta_vec=[2e-2], alpha 
             variable_names.append(str(i))
     
     # Fit linear regression:
-    model = sm.OLS(y, X.to_numpy())
+    # all data is used in the OLS fitting
+    model = sm.OLS(np.append(y, y_test), np.vstack((X, X_test)))
     model_lin = model.fit()
-    linear_r2 = r_index(X, y, model_lin)
+    linear_r2 = round(model_lin.rsquared,3)
     linear_sign = get_index_pvalues(model_lin,alpha)
 
     final_return = [[model_lin,linear_sign,linear_r2]]
@@ -50,6 +51,8 @@ def different_models(X, y, n_runs = 10, layers = [[10]], beta_vec=[2e-2], alpha 
     for layer in layers: 
         results = Parallel(n_jobs=-1, backend='loky')(delayed(single_run)(X, 
                                                                           y, 
+                                                                          X_test, 
+                                                                          y_test,
                                                                           layers=layer, 
                                                                           beta_vec=beta_vec)  for i in range(0, n_runs))
         
@@ -99,7 +102,7 @@ def plot_heat_map(data, variable_names, beta_vec):
     ax.figure.axes[-1].yaxis.label.set_size(8)
     ax.set_xlabel(r'$\beta$')
 
-def single_run(X, y, layers, batch_size = 32, nr_epochs = 100, beta_vec = [1e-2]):
+def single_run(X, y, X_test, y_test, layers, batch_size = 32, nr_epochs = 100, beta_vec = [1e-2]):
     # single trainning of a NN model
     dim = np.shape(X)[1]
     
@@ -127,11 +130,12 @@ def single_run(X, y, layers, batch_size = 32, nr_epochs = 100, beta_vec = [1e-2]
                                        loss=s_fit.absolute_loss,
                                        alpha=0.05,
                                        beta=beta,
-                                       x=X.to_numpy(),
-                                       y=y,
+                                       x=X_test.to_numpy(), 
+                                       y=y_test,
                                        verbose = 0)
         dic[round(beta,3)] = one_hot_significant(sfit_NN[0])
-    base_loss = mean_squared_error(y, model.predict(X, verbose=0))
+    X, y = np.vstack((X, X_test)), np.append(y, y_test)
+    base_loss = mean_squared_error(y_test, model.predict(X_test, verbose=0))
     r2 = r_index(X, y, model)
     return base_loss, r2, dic
 

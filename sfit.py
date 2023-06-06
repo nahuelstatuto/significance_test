@@ -22,8 +22,8 @@ def absolute_loss(predicted_y, true_y):
     absolute_loss
         a numpy array of shape (N, )
     """
-    return np.abs(true_y - np.squeeze(predicted_y))
-    #return mean_squared_error(true_y,np.squeeze(predicted_y))
+    #return np.abs(true_y - np.squeeze(predicted_y))
+    return mean_squared_error(true_y,np.squeeze(predicted_y))
 
 
 def binary_cross_entropy_loss(predicted_y, true_y):
