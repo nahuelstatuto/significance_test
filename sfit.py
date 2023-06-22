@@ -22,8 +22,8 @@ def absolute_loss(predicted_y, true_y):
     absolute_loss
         a numpy array of shape (N, )
     """
-    #return np.abs(true_y - np.squeeze(predicted_y))
-    return mean_squared_error(true_y,np.squeeze(predicted_y))
+    return np.abs(true_y - np.squeeze(predicted_y))
+    #return mean_squared_error(true_y,np.squeeze(predicted_y))
 
 
 def binary_cross_entropy_loss(predicted_y, true_y):
@@ -165,9 +165,7 @@ def sfit_first_order(model, loss, x, y, alpha, beta=None, verbose=1):
               'First-order significant variables:'.format(opt_beta))
         aux = []
         for key in c_1.keys():
-            aux.append(key)
-        print(aux)
-        
+            aux.append(key)        
         '''
         for key in c_1.keys():
             print('- Variable {0}:'.format(key))
