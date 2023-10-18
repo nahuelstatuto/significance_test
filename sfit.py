@@ -131,21 +131,23 @@ def sfit_first_order(model, loss, x, y, alpha, beta=None, verbose=1):
     assert np.array_equal(x[:, 0], np.ones(n)), 'As an intercept, all the entries of the first column of x ' \
                                                 'should be equal to 1.'
     errors = compute_errors(loss, model, n, p, x, y)
-    if beta is not None:
+    #if beta is not None:
+    if beta > 0.0:
         opt_beta = beta
         c_1, p_values, s_1, u_1 = sign_test(alpha, beta, errors, n, p)
     else:
-        print('Compute optimal beta')
-        beta = 1e-7
+        #print('Compute optimal beta')
+        beta = 1e-5
         mean_nr_significants = 1
         initial_weights = model.get_weights()
         k_eval = lambda placeholder: placeholder.numpy()
-        nr_simulations = 20
+        nr_simulations = 30
         x_val, x_test, y_val, y_test = train_test_split(x, y, test_size=0.5)
         n_val = x_val.shape[0]
         n_test = x_test.shape[0]
         while mean_nr_significants > alpha:
-            beta = beta*10
+            beta = beta*1.5
+            #print('Computing with beta = {0}'.format(beta))
             nr_significants_per_sim = np.zeros(nr_simulations)
             for i in range(nr_simulations):
                 new_weights = [k_eval(glorot_normal()(w.shape)) for w in initial_weights]
@@ -155,10 +157,10 @@ def sfit_first_order(model, loss, x, y, alpha, beta=None, verbose=1):
                 nr_significants_per_sim[i] = len(s_1_i)/p
             mean_nr_significants = np.mean(nr_significants_per_sim)
         opt_beta = beta
-        print('Optimal beta found: {0}'.format(opt_beta))
+        #print('Optimal beta found: {0}'.format(opt_beta))
         model.set_weights(initial_weights)
         errors = compute_errors(loss, model, n_test, p, x_test, y_test)
-        c_1, p_values, s_1, u_1 = sign_test(alpha, beta, errors, n_test, p)
+        c_1, p_values, s_1, u_1 = sign_test(alpha, opt_beta, errors, n_test, p)
     if verbose:
         print('Summary of first-order SFIT with beta = {0}\n'
               '------------------------------------------------\n'
@@ -166,12 +168,12 @@ def sfit_first_order(model, loss, x, y, alpha, beta=None, verbose=1):
         aux = []
         for key in c_1.keys():
             aux.append(key)        
-        '''
+        
         for key in c_1.keys():
             print('- Variable {0}:'.format(key))
             print('\t Median: {0}'.format(np.round(c_1[key][0], 2)))
             print('\t {0}% confidence interval: {1}'.format(int(100*(1-alpha)), np.round(c_1[key][1], 2)))
-        '''
+        
         print('------------------------------------------------\n'
               'First-order non-significant variables: {0}'.format(u_1))
 
@@ -307,7 +309,7 @@ def sfit_second_order(model, loss, alpha, beta, x, y, s_1, u_1, verbose=1):
               'Second-order non-significant variables: {0}'.format(u_2))
 
     # Test for presence of any third-order significance:
-    x_second = np.copy(x)
+    '''x_second = np.copy(x)
     indices = [i for i in range(1, p) if i in u_2]
     x_second[:, indices] = 0
     predicted_y_second = model.predict(x_second)
@@ -329,5 +331,5 @@ def sfit_second_order(model, loss, alpha, beta, x, y, s_1, u_1, verbose=1):
     if verbose:
         print('------------------------------------------------ \n'
               '------------------------------------------------ \n')
-
-    return s_2, c_2, u_2, third_order_significance
+    '''
+    return s_2, c_2, u_2#, third_order_significance
